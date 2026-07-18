@@ -289,18 +289,22 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
     /** Confirms a successful two-tap check-in/out with a short haptic buzz. */
     private fun performHaptic() {
-        view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            (requireContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        runCatching {
+            view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            vibrator.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
-        } else {
-            @Suppress("DEPRECATION")
-            vibrator.vibrate(35)
+        runCatching {
+            val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                (requireContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                requireContext().getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(35, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(35)
+            }
         }
     }
 
