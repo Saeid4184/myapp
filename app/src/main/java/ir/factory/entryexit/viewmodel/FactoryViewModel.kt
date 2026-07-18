@@ -32,13 +32,11 @@ class FactoryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun recentActivity(type: PersonType): LiveData<List<LogEntity>> = repository.getRecentActivityByType(type)
 
-    private val searchQuery = MutableLiveData("")
+    private val searchQuery = MutableLiveData<String>("")
+
     val searchResults: LiveData<List<PersonEntity>> = searchQuery.switchMap { query ->
-        if (query.isBlank()) {
-            MutableLiveData<List<PersonEntity>>(emptyList())
-        } else {
-            repository.search(query)
-        }
+        val empty: LiveData<List<PersonEntity>> = MutableLiveData<List<PersonEntity>>(emptyList())
+        if (query.isBlank()) empty else repository.search(query)
     }
 
     fun setSearchQuery(query: String) {
