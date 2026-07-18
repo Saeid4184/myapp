@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
+import androidx.lifecycle.switchMap
 import androidx.lifecycle.viewModelScope
 import ir.factory.entryexit.data.AppDatabase
 import ir.factory.entryexit.data.LogEntity
@@ -15,10 +15,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/**
- * Single ViewModel shared by MainActivity and all four tab fragments
- * (via `by activityViewModels()`), so every screen sees the same live data.
- */
 class FactoryViewModel(app: Application) : AndroidViewModel(app) {
 
     val repository: Repository = run {
@@ -37,8 +33,12 @@ class FactoryViewModel(app: Application) : AndroidViewModel(app) {
     fun recentActivity(type: PersonType): LiveData<List<LogEntity>> = repository.getRecentActivityByType(type)
 
     private val searchQuery = MutableLiveData("")
-    val searchResults: LiveData<List<PersonEntity>> = Transformations.switchMap(searchQuery) { query ->
-        if (query.isBlank()) MutableLiveData(emptyList()) else repository.search(query)
+    val searchResults: LiveData<List<PersonEntity>> = searchQuery.switchMap { query ->
+        if (query.isBlank()) {
+            MutableLiveData<List<PersonEntity>>(emptyList())
+        } else {
+            repository.search(query)
+        }
     }
 
     fun setSearchQuery(query: String) {
