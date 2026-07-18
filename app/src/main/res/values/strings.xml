@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">حراست سبحان بتن</string>
+    <string name="app_subtitle">مدیریت ورود و خروج</string>
+
+    <string name="category_personnel">پرسنل</string>
+    <string name="category_machinery">ماشین‌آلات</string>
+    <string name="category_visitor">مراجعین</string>
+    <string name="category_driver">رانندگان</string>
+
+    <string name="inside_count_format">%1$d نفر / مورد داخل کارخانه</string>
+
+    <string name="empty_list_roster">هنوز موردی ثبت نشده است.\nبرای افزودن، دکمه + را بزنید.</string>
+    <string name="empty_list_inside">در حال حاضر کسی داخل کارخانه نیست.</string>
+    <string name="empty_search">نتیجه‌ای یافت نشد.</string>
+
+    <string name="add_new">افزودن جدید</string>
+    <string name="add_new_person_title">ثبت مورد جدید</string>
+    <string name="hint_name">نام</string>
+    <string name="hint_extra_info">اطلاعات تکمیلی (اختیاری)</string>
+    <string name="hint_extra_info_machinery">شماره پلاک (اختیاری)</string>
+    <string name="hint_department">دپارتمان</string>
+    <string name="hint_machinery_group">گروه ماشین (مثلاً: میکسر، پمپ، وانت)</string>
+
+    <string name="new_visitor_checkin_title">ثبت ورود مهمان جدید</string>
+    <string name="hint_visitor_name">نام مهمان</string>
+    <string name="hint_visitor_department">واحد یا بخش مورد مراجعه</string>
+
+    <string name="new_driver_checkin_title">ثبت ورود راننده جدید</string>
+    <string name="hint_driver_name">نام راننده</string>
+    <string name="hint_driver_vehicle">ماشین مربوطه</string>
+
+    <string name="btn_save">ثبت</string>
+    <string name="btn_cancel">انصراف</string>
+    <string name="btn_checkin">ورود</string>
+    <string name="btn_checkout">خروج</string>
+    <string name="btn_confirm_checkout">تایید خروج</string>
+
+    <string name="status_inside">داخل</string>
+    <string name="status_outside">خارج</string>
+
+    <string name="checkin_success">ورود ثبت شد</string>
+    <string name="checkout_success">خروج ثبت شد</string>
+    <string name="person_added_success">با موفقیت ثبت شد</string>
+    <string name="error_generic">خطایی رخ داد</string>
+    <string name="error_name_empty">وارد کردن نام الزامی است</string>
+    <string name="error_department_empty">وارد کردن واحد مورد مراجعه الزامی است</string>
+    <string name="error_vehicle_empty">وارد کردن ماشین مربوطه الزامی است</string>
+
+    <string name="confirm_checkout_message">آیا از ثبت خروج «%1$s» اطمینان دارید؟</string>
+    <string name="last_status_format">وضعیت: %1$s</string>
+
+    <string name="log_entered_format">%1$s وارد شد</string>
+    <string name="log_exited_format">%1$s خارج شد</string>
+    <string name="recent_activity_empty">هنوز رویدادی ثبت نشده است</string>
+
+    <string name="search_hint">جست‌وجوی سریع…</string>
+    <string name="menu_search">جست‌وجو</string>
+    <string name="menu_setup">تنظیمات اولیه</string>
+    <string name="menu_report">گزارش‌ها</string>
+
+    <string name="setup_title">تنظیمات اولیه</string>
+    <string name="setup_subtitle_personnel">افزودن عکس پرسنلی</string>
+    <string name="setup_subtitle_machinery">افزودن عکس ماشین‌آلات</string>
+    <string name="setup_pick_image">انتخاب عکس</string>
+    <string name="setup_image_updated">عکس به‌روزرسانی شد</string>
+
+    <string name="report_title">گزارش‌ها و خروجی اکسل</string>
+    <string name="report_from_date">از تاریخ</string>
+    <string name="report_to_date">تا تاریخ</string>
+    <string name="report_export_button">دریافت خروجی اکسل</string>
+    <string name="report_export_success">فایل اکسل با موفقیت ساخته شد</string>
+    <string name="report_export_empty">در این بازه زمانی هیچ رویدادی ثبت نشده است</string>
+    <string name="report_row_count_format">%1$d ردیف برای خروجی یافت شد</string>
+
+    <string name="col_name">نام / مورد</string>
+    <string name="col_category">دسته</string>
+    <string name="col_department">واحد / گروه</string>
+    <string name="col_action">نوع رویداد</string>
+    <string name="col_timestamp">تاریخ و ساعت</string>
+    <string name="action_in_label">ورود</string>
+    <string name="action_out_label">خروج</string>
+
+    <string name="global_search_title">جست‌وجوی کلی</string>
+</resources>
