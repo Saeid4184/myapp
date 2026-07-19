@@ -65,11 +65,22 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
-            android:layout_marginBottom="10dp"
+            android:layout_marginBottom="4dp"
             android:ellipsize="end"
             android:maxLines="1"
             android:textColor="@color/concrete_500"
             android:textSize="12sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tvLongPressHint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginBottom="10dp"
+            android:text="@string/long_press_hint"
+            android:textColor="@color/concrete_300"
+            android:textSize="11sp"
             android:visibility="gone" />
 
         <TextView
@@ -112,3 +123,4 @@
         app:iconTint="@color/concrete_900" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
+

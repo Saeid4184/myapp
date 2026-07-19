@@ -58,6 +58,34 @@
     <string name="menu_search">جست‌وجو</string>
     <string name="menu_setup">تنظیمات اولیه</string>
     <string name="menu_report">گزارش‌ها</string>
+    <string name="menu_settings">تنظیمات نمایش</string>
+
+    <string name="settings_title">تنظیمات نمایش و کلیک</string>
+    <string name="settings_section_display">نمایش</string>
+    <string name="settings_section_interaction">تعامل / کلیک</string>
+    <string name="settings_section_theme">پوسته برنامه</string>
+    <string name="settings_show_recent_activity">نمایش فعالیت اخیر در هر تب</string>
+    <string name="settings_inside_first">نمایش موارد «داخل» در بالای هر بخش</string>
+    <string name="settings_haptic">لرزش هنگام تایید ورود/خروج</string>
+    <string name="settings_quick_tap">کلیک سریع (رد کردن منوی انتخاب برای ورود)</string>
+    <string name="settings_quick_tap_hint">در این حالت، کلیک روی یک مورد «خارج» بلافاصله ورود آن را ثبت می‌کند. خروج همیشه نیاز به تایید دارد.</string>
+    <string name="settings_theme_system">پیش‌فرض سیستم</string>
+    <string name="settings_theme_light">روشن</string>
+    <string name="settings_theme_dark">تیره</string>
+
+    <string name="edit_person_title">ویرایش مشخصات</string>
+    <string name="btn_edit">ویرایش</string>
+    <string name="edit_success">تغییرات ذخیره شد</string>
+    <string name="long_press_hint">برای ویرایش مشخصات، لمس طولانی کنید</string>
+
+    <string name="report_analytics_sheet_name">خلاصه آماری</string>
+    <string name="col_summary_metric">شاخص</string>
+    <string name="col_summary_value">مقدار</string>
+    <string name="summary_total_events">کل رویدادها در این بازه</string>
+    <string name="summary_total_in">کل ورودها</string>
+    <string name="summary_total_out">کل خروج‌ها</string>
+    <string name="summary_currently_inside">در حال حاضر داخل کارخانه (اکنون)</string>
+    <string name="summary_by_category_header">بر اساس دسته</string>
 
     <string name="setup_title">تنظیمات اولیه</string>
     <string name="setup_subtitle_personnel">افزودن عکس پرسنلی</string>
@@ -83,3 +111,4 @@
 
     <string name="global_search_title">جست‌وجوی کلی</string>
 </resources>
+

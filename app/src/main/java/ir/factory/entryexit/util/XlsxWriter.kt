@@ -11,24 +11,34 @@ import java.util.zip.ZipOutputStream
  *
  * Cells are written as inline strings (`t="inlineStr"`), which keeps the implementation simple
  * (no shared-strings table bookkeeping) while still opening correctly in Excel, Google Sheets,
- * and LibreOffice. The sheet is marked right-to-left so Persian text reads naturally.
+ * and LibreOffice. Every sheet is marked right-to-left so Persian columns read naturally.
+ *
+ * Supports multiple sheets in one workbook (e.g. a raw "detail" sheet for pivot-table analysis
+ * plus a human-readable "summary" sheet), so the exported file works both for accounting
+ * (readable rows) and analysis (structured, one-row-per-event data).
  */
 object XlsxWriter {
 
-    /**
-     * @param headers column titles (row 1)
-     * @param rows one list of cell strings per data row — each row becomes exactly one row
-     *             in the sheet (never compressed/merged into a single cell)
-     */
+    data class Sheet(val name: String, val headers: List<String>, val rows: List<List<String>>)
+
+    /** Single-sheet convenience overload (kept for simple exports). */
     fun write(destination: File, sheetName: String, headers: List<String>, rows: List<List<String>>) {
+        write(destination, listOf(Sheet(sheetName, headers, rows)))
+    }
+
+    /** Multi-sheet export: each [Sheet] becomes its own tab in the workbook, in order. */
+    fun write(destination: File, sheets: List<Sheet>) {
+        require(sheets.isNotEmpty()) { "At least one sheet is required" }
         destination.parentFile?.mkdirs()
         ZipOutputStream(destination.outputStream()).use { zip ->
-            writeEntry(zip, "[Content_Types].xml", contentTypesXml())
+            writeEntry(zip, "[Content_Types].xml", contentTypesXml(sheets.size))
             writeEntry(zip, "_rels/.rels", rootRelsXml())
-            writeEntry(zip, "xl/workbook.xml", workbookXml(sheetName))
-            writeEntry(zip, "xl/_rels/workbook.xml.rels", workbookRelsXml())
+            writeEntry(zip, "xl/workbook.xml", workbookXml(sheets))
+            writeEntry(zip, "xl/_rels/workbook.xml.rels", workbookRelsXml(sheets.size))
             writeEntry(zip, "xl/styles.xml", stylesXml())
-            writeEntry(zip, "xl/worksheets/sheet1.xml", sheetXml(headers, rows))
+            sheets.forEachIndexed { index, sheet ->
+                writeEntry(zip, "xl/worksheets/sheet${index + 1}.xml", sheetXml(sheet.headers, sheet.rows))
+            }
         }
     }
 
@@ -47,32 +57,49 @@ object XlsxWriter {
         .replace("\"", "&quot;")
         .replace("'", "&apos;")
 
-    private fun contentTypesXml() = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    private fun contentTypesXml(sheetCount: Int): String {
+        val overrides = (1..sheetCount).joinToString("\n  ") { i ->
+            """<Override PartName="/xl/worksheets/sheet$i.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>"""
+        }
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
-  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  $overrides
   <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
 </Types>"""
+    }
 
     private fun rootRelsXml() = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
 </Relationships>"""
 
-    private fun workbookXml(sheetName: String) = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    private fun workbookXml(sheets: List<Sheet>): String {
+        val entries = sheets.mapIndexed { index, sheet ->
+            val sheetNum = index + 1
+            """<sheet name="${escapeXml(sheet.name)}" sheetId="$sheetNum" r:id="rId$sheetNum"/>"""
+        }.joinToString("\n    ")
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <sheets>
-    <sheet name="${escapeXml(sheetName)}" sheetId="1" r:id="rId1"/>
+    $entries
   </sheets>
 </workbook>"""
+    }
 
-    private fun workbookRelsXml() = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    private fun workbookRelsXml(sheetCount: Int): String {
+        val sheetRels = (1..sheetCount).joinToString("\n  ") { i ->
+            """<Relationship Id="rId$i" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet$i.xml"/>"""
+        }
+        val stylesRelId = sheetCount + 1
+        return """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
-  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+  $sheetRels
+  <Relationship Id="rId$stylesRelId" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
 </Relationships>"""
+    }
 
     private fun stylesXml() = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
@@ -145,3 +172,4 @@ object XlsxWriter {
         return sb.toString()
     }
 }
+

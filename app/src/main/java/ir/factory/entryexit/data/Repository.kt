@@ -53,6 +53,29 @@ class Repository(private val personDao: PersonDao, private val logDao: LogDao) {
         return Result.success(Unit)
     }
 
+    /** Edits an existing person/machine's name, department/group, and extra info. */
+    suspend fun updatePerson(personId: Long, name: String, group: String?, extraInfo: String?): Result<Unit> {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return Result.failure(IllegalArgumentException("نام نمی‌تواند خالی باشد"))
+        val fresh = personDao.getById(personId) ?: return Result.failure(IllegalStateException("مورد یافت نشد"))
+
+        if (!trimmed.equals(fresh.name, ignoreCase = false)) {
+            val duplicateCount = personDao.countByNameAndType(fresh.type, trimmed)
+            if (duplicateCount > 0) {
+                return Result.failure(IllegalStateException("این نام قبلاً برای مورد دیگری ثبت شده است"))
+            }
+        }
+
+        personDao.update(
+            fresh.copy(
+                name = trimmed,
+                group = group?.trim()?.ifEmpty { null },
+                extraInfo = extraInfo?.trim()?.ifEmpty { null }
+            )
+        )
+        return Result.success(Unit)
+    }
+
     suspend fun getRosterOnce(type: PersonType): List<PersonEntity> = personDao.getByTypeOnce(type.name)
 
     /**
@@ -142,8 +165,12 @@ class Repository(private val personDao: PersonDao, private val logDao: LogDao) {
     suspend fun getLogsInRange(startInclusive: Long, endInclusive: Long): List<LogEntity> =
         logDao.getLogsInRange(startInclusive, endInclusive)
 
+    /** Real-time count (not range-bound) — used for the "currently inside right now" summary metric. */
+    suspend fun countCurrentlyInside(type: PersonType): Int = personDao.countInsideByType(type.name)
+
     companion object {
         const val ACTION_IN = "IN"
         const val ACTION_OUT = "OUT"
     }
 }
+

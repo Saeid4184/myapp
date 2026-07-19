@@ -71,6 +71,10 @@ class MainActivity : AppCompatActivity() {
                 startActivity(Intent(this, SetupActivity::class.java))
                 true
             }
+            R.id.action_settings -> {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                true
+            }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -79,3 +83,4 @@ class MainActivity : AppCompatActivity() {
         const val EXTRA_JUMP_TO_TYPE = "extra_jump_to_type"
     }
 }
+

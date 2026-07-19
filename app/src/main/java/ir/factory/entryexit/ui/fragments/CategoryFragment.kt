@@ -26,6 +26,7 @@ import ir.factory.entryexit.databinding.DialogAddPersonBinding
 import ir.factory.entryexit.databinding.DialogManualCheckinBinding
 import ir.factory.entryexit.databinding.FragmentCategoryBinding
 import ir.factory.entryexit.ui.GroupedPersonAdapter
+import ir.factory.entryexit.util.AppPreferences
 import ir.factory.entryexit.viewmodel.FactoryViewModel
 
 /**
@@ -68,9 +69,24 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
     }
 
     private fun setupList() {
-        adapter = GroupedPersonAdapter(type, showGroups = !isManualEntry) { person -> onPersonClicked(person) }
+        adapter = GroupedPersonAdapter(
+            type,
+            showGroups = !isManualEntry,
+            onClick = { person -> onPersonClicked(person) },
+            onLongClick = { person -> if (!isManualEntry) showEditPersonDialog(person) }
+        )
         binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.recyclerView.adapter = adapter
+        binding.tvLongPressHint.visibility = if (isManualEntry) View.GONE else View.VISIBLE
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Preferences may have changed in the Settings screen since this fragment was created.
+        applyFilter(binding.etSearch.text?.toString().orEmpty())
+        if (!AppPreferences.isRecentActivityVisible(requireContext())) {
+            binding.tvRecentActivity.visibility = View.GONE
+        }
     }
 
     private fun setupFab() {
@@ -106,6 +122,10 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         }
 
         viewModel.recentActivity(type).observe(viewLifecycleOwner) { logs ->
+            if (!AppPreferences.isRecentActivityVisible(requireContext())) {
+                binding.tvRecentActivity.visibility = View.GONE
+                return@observe
+            }
             val latest = logs.firstOrNull()
             if (latest == null) {
                 binding.tvRecentActivity.visibility = View.GONE
@@ -121,7 +141,7 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
     }
 
     private fun applyFilter(query: String) {
-        val filtered = if (query.isBlank()) {
+        var filtered = if (query.isBlank()) {
             rawList
         } else {
             rawList.filter {
@@ -129,6 +149,18 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                     it.group?.contains(query, ignoreCase = true) == true
             }
         }
+
+        if (!isManualEntry && AppPreferences.isInsideFirstSort(requireContext())) {
+            // Keep group order intact (list already sorted by group,name from Room), but within
+            // each group, show currently-inside items first.
+            val groupOrder = LinkedHashSet<String>()
+            for (p in filtered) groupOrder.add(p.group ?: "سایر")
+            val byGroup = filtered.groupBy { it.group ?: "سایر" }
+            filtered = groupOrder.flatMap { g ->
+                byGroup[g].orEmpty().sortedWith(compareByDescending<PersonEntity> { it.isInside }.thenBy { it.name })
+            }
+        }
+
         adapter.submit(filtered)
 
         val emptyRes = when {
@@ -145,6 +177,12 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
 
     private fun onPersonClicked(person: PersonEntity) {
         if (isManualEntry) {
+            confirmCheckOut(person)
+        } else if (AppPreferences.isQuickTapEnabled(requireContext()) && !person.isInside) {
+            // Quick-tap mode: an outside person/machine is checked in immediately, no chooser.
+            // Checkout always keeps its confirmation regardless of this setting.
+            viewModel.checkIn(person.id) { result -> handleActionResult(result.map { }, R.string.checkin_success) }
+        } else if (AppPreferences.isQuickTapEnabled(requireContext()) && person.isInside) {
             confirmCheckOut(person)
         } else {
             val items = arrayOf(getString(R.string.btn_checkin), getString(R.string.btn_checkout))
@@ -210,6 +248,58 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
                     result.onSuccess {
                         performHaptic()
                         toast(getString(R.string.person_added_success))
+                        dialog.dismiss()
+                    }.onFailure { error ->
+                        dialogBinding.tilName.error = error.message ?: getString(R.string.error_generic)
+                    }
+                }
+            }
+        }
+        dialog.show()
+    }
+
+    // ---- Editing an existing Personnel/Machinery entry (long-press) ----
+
+    private fun showEditPersonDialog(person: PersonEntity) {
+        val dialogBinding = DialogAddPersonBinding.inflate(LayoutInflater.from(requireContext()))
+        dialogBinding.etName.setText(person.name)
+        dialogBinding.etExtraInfo.setText(person.extraInfo)
+
+        if (type == PersonType.PERSONNEL) {
+            dialogBinding.tilGroup.hint = getString(R.string.hint_department)
+            val departments = Department.values().map { it.displayName }
+            dialogBinding.etGroup.setAdapter(
+                ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, departments)
+            )
+            dialogBinding.etGroup.setText(person.group, false)
+            dialogBinding.tilExtraInfo.hint = getString(R.string.hint_extra_info)
+        } else {
+            dialogBinding.tilGroup.hint = getString(R.string.hint_machinery_group)
+            dialogBinding.etGroup.inputType = android.text.InputType.TYPE_CLASS_TEXT
+            dialogBinding.etGroup.setText(person.group)
+            dialogBinding.tilExtraInfo.hint = getString(R.string.hint_extra_info_machinery)
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.edit_person_title)
+            .setView(dialogBinding.root)
+            .setPositiveButton(R.string.btn_edit, null)
+            .setNegativeButton(R.string.btn_cancel, null)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                val name = dialogBinding.etName.text?.toString().orEmpty()
+                if (name.isBlank()) {
+                    dialogBinding.tilName.error = getString(R.string.error_name_empty)
+                    return@setOnClickListener
+                }
+                val group = dialogBinding.etGroup.text?.toString()
+                val extra = dialogBinding.etExtraInfo.text?.toString()
+                viewModel.updatePerson(person.id, name, group, extra) { result ->
+                    result.onSuccess {
+                        performHaptic()
+                        toast(getString(R.string.edit_success))
                         dialog.dismiss()
                     }.onFailure { error ->
                         dialogBinding.tilName.error = error.message ?: getString(R.string.error_generic)
@@ -287,8 +377,10 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         }
     }
 
-    /** Confirms a successful two-tap check-in/out with a short haptic buzz. */
+    /** Confirms a successful two-tap check-in/out with a short haptic buzz. Never crashes the
+     *  calling action if the device/permission doesn't cooperate — haptics are a nice-to-have. */
     private fun performHaptic() {
+        if (!AppPreferences.isHapticEnabled(requireContext())) return
         runCatching {
             view?.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         }
@@ -325,3 +417,4 @@ class CategoryFragment : Fragment(R.layout.fragment_category) {
         }
     }
 }
+

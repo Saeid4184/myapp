@@ -93,23 +93,31 @@ class ReportActivity : AppCompatActivity() {
 
     private fun launchExport(logs: List<LogEntity>) {
         lifecycleScope.launch {
-            val file = withContext(Dispatchers.IO) { buildXlsxFile(logs) }
+            val insideCounts = withContext(Dispatchers.IO) { awaitInsideCounts() }
+            val file = withContext(Dispatchers.IO) { buildXlsxFile(logs, insideCounts) }
             withContext(Dispatchers.IO) { saveToDownloads(file) }
             Toast.makeText(this@ReportActivity, R.string.report_export_success, Toast.LENGTH_LONG).show()
             shareFile(file)
         }
     }
 
-    private fun buildXlsxFile(logs: List<LogEntity>): File {
-        val headers = listOf(
+    /** Bridges the ViewModel's callback-based currentlyInsideCounts() into a suspend call. */
+    private suspend fun awaitInsideCounts(): Map<PersonType, Int> =
+        kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            viewModel.currentlyInsideCounts { counts -> cont.resumeWith(Result.success(counts)) }
+        }
+
+    private fun buildXlsxFile(logs: List<LogEntity>, insideCounts: Map<PersonType, Int>): File {
+        val fmt = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
+
+        val detailHeaders = listOf(
             getString(R.string.col_name),
             getString(R.string.col_category),
             getString(R.string.col_department),
             getString(R.string.col_action),
             getString(R.string.col_timestamp)
         )
-        val fmt = SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.US)
-        val rows = logs.map { log ->
+        val detailRows = logs.map { log ->
             val categoryLabel = runCatching { PersonType.valueOf(log.type).displayName }.getOrDefault(log.type)
             val actionLabel = if (log.action == "IN") getString(R.string.action_in_label) else getString(R.string.action_out_label)
             listOf(
@@ -120,10 +128,42 @@ class ReportActivity : AppCompatActivity() {
                 fmt.format(Date(log.timestamp))
             )
         }
+
+        val summaryHeaders = listOf(getString(R.string.col_summary_metric), getString(R.string.col_summary_value))
+        val summaryRows = mutableListOf<List<String>>()
+        summaryRows += listOf(getString(R.string.summary_total_events), logs.size.toString())
+        summaryRows += listOf(getString(R.string.summary_total_in), logs.count { it.action == "IN" }.toString())
+        summaryRows += listOf(getString(R.string.summary_total_out), logs.count { it.action == "OUT" }.toString())
+        summaryRows += listOf("", "")
+        summaryRows += listOf(getString(R.string.summary_by_category_header), "")
+        for (type in PersonType.values()) {
+            val inCount = logs.count { it.type == type.name && it.action == "IN" }
+            val outCount = logs.count { it.type == type.name && it.action == "OUT" }
+            summaryRows += listOf(
+                "${type.displayName} — ${getString(R.string.action_in_label)}",
+                inCount.toString()
+            )
+            summaryRows += listOf(
+                "${type.displayName} — ${getString(R.string.action_out_label)}",
+                outCount.toString()
+            )
+        }
+        summaryRows += listOf("", "")
+        summaryRows += listOf(getString(R.string.summary_currently_inside), "")
+        for (type in PersonType.values()) {
+            summaryRows += listOf(type.displayName, (insideCounts[type] ?: 0).toString())
+        }
+
         val outDir = File(cacheDir, "exports").apply { mkdirs() }
         val fileName = "traffic_report_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.xlsx"
         val file = File(outDir, fileName)
-        XlsxWriter.write(file, "گزارش تردد", headers, rows)
+        XlsxWriter.write(
+            file,
+            listOf(
+                XlsxWriter.Sheet(getString(R.string.report_title), detailHeaders, detailRows),
+                XlsxWriter.Sheet(getString(R.string.report_analytics_sheet_name), summaryHeaders, summaryRows)
+            )
+        )
         return file
     }
 
@@ -182,3 +222,4 @@ class ReportActivity : AppCompatActivity() {
         }
     }
 }
+

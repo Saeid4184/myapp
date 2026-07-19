@@ -26,4 +26,13 @@
         app:iconTint="@color/white"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/action_settings"
+        android:icon="@drawable/ic_settings_gear"
+        android:title="@string/menu_settings"
+        android:contentDescription="@string/menu_settings"
+        app:iconTint="@color/white"
+        app:showAsAction="never" />
+
 </menu>
+

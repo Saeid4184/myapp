@@ -26,7 +26,8 @@ sealed class RosterRow {
 class GroupedPersonAdapter(
     private val type: PersonType,
     private val showGroups: Boolean,
-    private val onClick: (PersonEntity) -> Unit
+    private val onClick: (PersonEntity) -> Unit,
+    private val onLongClick: (PersonEntity) -> Unit = {}
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private var rows: List<RosterRow> = emptyList()
@@ -130,6 +131,10 @@ class GroupedPersonAdapter(
             }
 
             binding.root.setOnClickListener { onClick(person) }
+            binding.root.setOnLongClickListener {
+                onLongClick(person)
+                true
+            }
         }
     }
 
@@ -138,3 +143,4 @@ class GroupedPersonAdapter(
         private const val VIEW_TYPE_ITEM = 1
     }
 }
+

@@ -35,6 +35,9 @@ interface PersonDao {
     @Query("SELECT COUNT(*) FROM persons WHERE type = :type")
     suspend fun countByType(type: String): Int
 
+    @Query("SELECT COUNT(*) FROM persons WHERE type = :type AND isInside = 1")
+    suspend fun countInsideByType(type: String): Int
+
     /** Quick search across every category (used by the global search screen). */
     @Query(
         "SELECT * FROM persons WHERE name LIKE '%' || :query || '%' " +
@@ -46,3 +49,4 @@ interface PersonDao {
     @Query("SELECT * FROM persons WHERE type = :type ORDER BY group_name ASC, name ASC")
     suspend fun getByTypeOnce(type: String): List<PersonEntity>
 }
+

@@ -15,6 +15,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Single ViewModel shared by MainActivity and all four tab fragments
+ * (via `by activityViewModels()`), so every screen sees the same live data.
+ */
 class FactoryViewModel(app: Application) : AndroidViewModel(app) {
 
     val repository: Repository = run {
@@ -32,11 +36,13 @@ class FactoryViewModel(app: Application) : AndroidViewModel(app) {
 
     fun recentActivity(type: PersonType): LiveData<List<LogEntity>> = repository.getRecentActivityByType(type)
 
-    private val searchQuery = MutableLiveData<String>("")
-
+    private val searchQuery = MutableLiveData("")
     val searchResults: LiveData<List<PersonEntity>> = searchQuery.switchMap { query ->
-        val empty: LiveData<List<PersonEntity>> = MutableLiveData<List<PersonEntity>>(emptyList())
-        if (query.isBlank()) empty else repository.search(query)
+        if (query.isBlank()) {
+            MutableLiveData<List<PersonEntity>>(emptyList())
+        } else {
+            repository.search(query)
+        }
     }
 
     fun setSearchQuery(query: String) {
@@ -97,6 +103,10 @@ class FactoryViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { onResult(repository.updatePersonImage(personId, imageUri)) }
     }
 
+    fun updatePerson(personId: Long, name: String, group: String?, extraInfo: String?, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch { onResult(repository.updatePerson(personId, name, group, extraInfo)) }
+    }
+
     fun loadRosterOnce(type: PersonType, onResult: (List<PersonEntity>) -> Unit) {
         viewModelScope.launch {
             val roster = withContext(Dispatchers.IO) { repository.getRosterOnce(type) }
@@ -110,4 +120,14 @@ class FactoryViewModel(app: Application) : AndroidViewModel(app) {
             onResult(logs)
         }
     }
+
+    fun currentlyInsideCounts(onResult: (Map<PersonType, Int>) -> Unit) {
+        viewModelScope.launch {
+            val counts = withContext(Dispatchers.IO) {
+                PersonType.values().associateWith { repository.countCurrentlyInside(it) }
+            }
+            onResult(counts)
+        }
+    }
 }
+
